@@ -15,6 +15,7 @@ from matplotlib.patches import Circle
 from numpy import linalg as LA
 import misc_tools
 import plot_defects
+import recursion
 
 ##############################################################################        
    
@@ -400,21 +401,110 @@ def compute_single_defect(xd, yd, x, y, phi, cid, sim, cell_list, \
 #            fig_cnt += 1
 #            compute_single_defect(possible_defect_pts, point[0], point[1], x, y, phi, cid, sim, cell_list, \
 #                                      r_new_points, n_new_points, fig_cnt)
-
-        
     print 'Point added is: ', xd, ' ', yd
     cc = 'colors'
-    if dmax > -0.1 and dmax < 0.1:
-        cc = 'w'
-    elif dmax > -0.6 and dmax < -0.4:
+
+    # Determine whether or not its a defect: 
+    DEFECT_BOOL  = FALSE;
+    BREAK_ALL = FALSE; 
+
+    # THESE ARE INPUT PARAMETERS!!
+    defect_strength_cut = 0.1;		# cutoff around +/-0.5  
+    defect_strength_cut_max = 0.01;	# maximum cutoff around the defects
+    nfriends = 10;
+    
+    if (dmax>-defect_strength_cut-0.5 and dmax<defect_strength_cut-0.5):
+	DEFECT_BOOL = TRUE;
         cc = 'r'
-    elif dmax > 0.4 and dmax < 0.6:
+    elif (dmax>0.5-defect_strength_cut and dmax<defect_strength_cut+0.5):
+	DEFECT_BOOL = TRUE;
         cc = 'g'
-                    
+    else:
+	return
+
+
+    # Hit gold on first try
+    if (dmax>-defect_strength_cut_max-0.5 and dmax<defect_strength_cut_max-0.5):
+        cc = 'r'
+	### jump past friends search
+
+    elif (dmax_1>0.5-defect_strength_cut_max and dmax_1<defect_strength_cut_max+0.5):
+        cc = 'g'
+	### jump past friends search
+
+    ### search around friends of friends THRICE max
+    if DEFECT_BOOL:
+            friend_list = find_friends(dmax, xd, yd, rcut, inner_radius, nfriends)
+
+            ### First iteration
+	    for xd_friend,yd_friend in friend_list:
+		if BREAK_ALL:
+		    break
+
+		dmax_1 = calculate_defect_recursion(xd_friend,yd_friend, x, y,phi,cid,sim,cell_list, possible_defect_pts, pt_colors, rn, nn, fig_cnt)
+
+		# Hit gold with first friends
+		if (dmax_1>-defect_strength_cut_max-0.5 and dmax_1<defect_strength_cut_max-0.5):
+		    DEFECT_BOOL = TRUE;
+		    cc = 'r'
+		    xd,yd = xd_friend,yd_friend
+		    break
+
+		elif (dmax_1>0.5-defect_strength_cut_max and dmax_1<defect_strength_cut_max+0.5):
+		    DEFECT_BOOL = TRUE;
+		    cc = 'g'
+		    xd,yd = xd_friend,yd_friend
+		    break
+
+		# Try again
+		elif np.abs(dmax-0.5) < np.abs(dmax_1-0.5) or np.abs(dmax+0.5) < np.abs(dmax_1+0.5):
+		    friend_list2 = find_friends(dmax_1, xd, yd, rcut, inner_radius, nfriends)
+
+
+		### Second iteration	    
+		for xd_friend2,yd_friend2 in friend_list2:
+			
+		    dmax_2 = calculate_defect_recursion(xd_friend2,yd_friend2, x, y,phi,cid,sim,cell_list, possible_defect_pts, pt_colors, rn, nn, fig_cnt)
+
+		    # Hit gold with second friends
+		    if (dmax>-defect_strength_cut_max-0.5 and dmax<defect_strength_cut_max-0.5):
+			DEFECT_BOOL = TRUE;
+			cc = 'r'
+			xd,yd = xd_friend2,yd_friend2
+			BREAK_ALL = TRUE
+			break
+
+		    elif (dmax>0.5-defect_strength_cut_max and dmax<defect_strength_cut_max+0.5):
+			DEFECT_BOOL = TRUE;
+			cc = 'g'
+			xd,yd = xd_friend2,yd_friend2
+			BREAK_ALL = TRUE
+			break
+
+		    # Try again
+		    elif np.abs(dmax_1-0.5) < np.abs(dmax_2-0.5) or np.abs(dmax_1+0.5) < np.abs(dmax_2+0.5):
+			friend_list3 = find_friends(dmax, xd, yd, rcut, inner_radius, nfriends)
+
+			### Last iteration	    
+			for xd_friend3,yd_friend3 in friend_list3:
+			    dmax_3 = calculate_defect_recursion(xd_friend2,yd_friend2, x, y,phi,cid,sim,cell_list, possible_defect_pts, pt_colors, rn, nn, fig_cnt)
+			    # Hit gold on last try
+			    if (dmax>-defect_strength_cut_max-0.5 and dmax<defect_strength_cut_max-0.5):
+				DEFECT_BOOL = TRUE;
+				cc = 'r'
+				xd,yd = xd_friend3,yd_friend3
+				BREAK_ALL = TRUE
+				break
+			    elif (dmax>0.5-defect_strength_cut_max and dmax<defect_strength_cut_max+0.5):
+				DEFECT_BOOL = TRUE;
+				cc = 'g'
+				xd,yd = xd_friend3,yd_friend3
+				BREAK_ALL = TRUE
+				break
+
     ### plot the defect
     
     if cc == 'w' or cc == 'r' or cc == 'g':
-        
         possible_defect_pts.append([xd, yd])   
         pt_colors.append(cc)
         

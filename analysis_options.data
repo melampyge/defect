@@ -5,19 +5,19 @@ hname = out2.header
 npol = 75
 
 # Density Options; compute flag, nbins2d, nbins1d, rho_min, rho_max
-1 60 100 0.0 2.0
+0 60 100 0.0 2.0
 
 # Number Fluctuation Options; compute flag
-1
+0
 
 # Voronoi Density Options; compute flag, nbins, vmin, vmax
-1 100 4.0 9.0
+0 100 4.0 9.0
 
 # Velocity / Worticity Options; compute flag, nbins
-1 60
+0 60
 
 # Correlation of orientation and velocity; compute flag, nevery
-1 20
+0 20
 
 # Defect point analysis; compute flag, rcut, neach, estimated maximum number of defects per timestep
 1 10.0 5 100
