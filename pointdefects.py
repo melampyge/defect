@@ -1,7 +1,8 @@
-#!/usr/local/bin/python2.7
 
 import numpy as np
 import math
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import misc_tools
 
@@ -48,7 +49,7 @@ class PointDefects:
 
     ##############################################################
 
-    def compute_single_defect(self,xd,yd,x,y,phi,llist,head,nsegx,nsegy,lx,ly):
+    def compute_single_defect(self,xd,yd,x,y,phi,llist,head,nsegx,nsegy,lx,ly,fig_cnt):
         """ compute the defect for a single position (xd, yd)"""
         # allocate array to store orientation
         nseg = 10
@@ -129,6 +130,7 @@ class PointDefects:
         dmax /= 2
         if idxmax < idxmin:
             dmax *= -1
+        print dmax
 
         # go around the circle, show the cumulated function
         ### plot results for testing purpose
@@ -152,17 +154,20 @@ class PointDefects:
         plt.scatter(x+lx,y+ly,linewidth = 0, marker = 'o', c = color, s = 40, cmap = cmap)
 
         plt.colorbar()
-        ax1.plot(xd,yd,ls = '', marker = 'x', color = 'k')
+        ax1.plot(xd,yd,ls = '', marker = 'x', color = 'k',label=str(dmax))
+        ax1.axis('equal')
         t = np.linspace(0,2*np.pi,1000)
         ax1.plot(self.rcut*np.cos(t) + xd, self.rcut*np.sin(t) + yd, color = 'k')
-        ax1.set_xlim([xd - 1.5*self.rcut, xd + 1.5*self.rcut])
-        ax1.set_ylim([yd - 1.5*self.rcut, yd + 1.5*self.rcut])
+        ax1.set_xlim([(xd - 1.5*self.rcut), (xd + 1.5*self.rcut)])
+        ax1.set_ylim([(yd - 1.5*self.rcut), (yd + 1.5*self.rcut)])
         ax2 = plt.subplot(122)
         ax2.plot(orient, color = 'r', label = 'defect = ' + str(dmax), marker = '^')
         ax2.plot(orient2, color = 'g', label = 'defect = ' + str(dmax), marker = '^')
         ax2.legend()
-        plt.show()
+        #plt.show()
+        plt.savefig('/usr/users/iff_th2/duman/Desktop/Defect/figure_' + str(fig_cnt) + '.png', dpi=200, bbox_inches='tight', pad_inches=0.08)
         plt.close()
+        
         dfct = 1
         return dfct
 
@@ -182,11 +187,13 @@ class PointDefects:
         for i in range(self.nbins):
             ygrid[i] = wy*i
         # loop over grid points and compute grid defect
+        fig_cnt = 0
         for i in range(self.nbins):
             for j in range(self.nbins):
                 xgi = xgrid[i]
                 ygi = ygrid[j]
-                defect_grid[i,j] = self.compute_single_defect(xgi,ygi,x,y,phi,llist,head,nsegx,nsegy,lx,ly)
+                fig_cnt += 1
+                defect_grid[i,j] = self.compute_single_defect(xgi,ygi,x,y,phi,llist,head,nsegx,nsegy,lx,ly,fig_cnt)
         exit()
         return xgrid, ygrid, defect_grid
         
