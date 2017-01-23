@@ -15,6 +15,7 @@ from matplotlib.patches import Circle
 from numpy import linalg as LA
 import misc_tools
 import plot_defects
+import examine_clusters
 import recursion
 
 ##############################################################################        
@@ -353,12 +354,14 @@ def calculate_order_param_matrix(xd, yd, nseg, x, y, phi_nematic, sim, cell_list
 ##############################################################################
         
 def compute_single_defect(xd, yd, x, y, phi, cid, sim, cell_list, \
-                          possible_defect_pts, pt_colors, rn, nn, fig_cnt):
+                          possible_defect_pts, pt_colors, rn, nn, dcut, fig_cnt):
     """ compute the defect strength of a single point given with (xd, yd)"""
     
     ### allocate array to divide the full circle into orthants
     
     nseg = 10
+    total_rec_num = 3			# total recursion number 
+    DEFECT_BOOL  = False
 
     ### generate phi_nematic array by turning the orientations headless
     
@@ -380,144 +383,130 @@ def compute_single_defect(xd, yd, x, y, phi, cid, sim, cell_list, \
     ### determine the defect strength
     
     dmax = calculate_defect_strength(corrected_directors)
-    print dmax
-    
-#    if abs(dmax) < 0.3:
-#        return
-#    else:
-#        
-#        ### add the point to the possible defect points list
-#        
-#        print 'Point added is: ', xd, ' ', yd
-#        possible_defect_pts.append([xd, yd])   
-#        
-#        ### pop up new neighbors in the vicinity of the point until all points are checked
-#        
-#        xdown, xup, ydown, yup = determine_neigh(xd, yd, r_new_points, sim)            
-#        xnew = np.random.uniform(xdown, xup, n_new_points)
-#        ynew = np.random.uniform(ydown, yup, n_new_points)
-#        new_points = np.transpose(np.vstack((xnew, ynew)))
-#        for point in new_points:
-#            fig_cnt += 1
-#            compute_single_defect(possible_defect_pts, point[0], point[1], x, y, phi, cid, sim, cell_list, \
-#                                      r_new_points, n_new_points, fig_cnt)
-    print 'Point added is: ', xd, ' ', yd
     cc = 'colors'
 
-    # Determine whether or not its a defect: 
-    DEFECT_BOOL  = FALSE;
-    BREAK_ALL = FALSE; 
-
-    # THESE ARE INPUT PARAMETERS!!
-    defect_strength_cut = 0.1;		# cutoff around +/-0.5  
-    defect_strength_cut_max = 0.01;	# maximum cutoff around the defects
-    nfriends = 10;
+    ### check for -1/2 defects
     
-    if (dmax>-defect_strength_cut-0.5 and dmax<defect_strength_cut-0.5):
-	DEFECT_BOOL = TRUE;
+    if (dmax > -dcut-0.5 and dmax < dcut-0.5):
+        DEFECT_BOOL = True
         cc = 'r'
-    elif (dmax>0.5-defect_strength_cut and dmax<defect_strength_cut+0.5):
-	DEFECT_BOOL = TRUE;
-        cc = 'g'
-    else:
-	return
-
-
-    # Hit gold on first try
-    if (dmax>-defect_strength_cut_max-0.5 and dmax<defect_strength_cut_max-0.5):
-        cc = 'r'
-	### jump past friends search
-
-    elif (dmax_1>0.5-defect_strength_cut_max and dmax_1<defect_strength_cut_max+0.5):
-        cc = 'g'
-	### jump past friends search
-
-    ### search around friends of friends THRICE max
-    if DEFECT_BOOL:
-            friend_list = find_friends(dmax, xd, yd, rcut, inner_radius, nfriends)
-
-            ### First iteration
-	    for xd_friend,yd_friend in friend_list:
-		if BREAK_ALL:
-		    break
-
-		dmax_1 = calculate_defect_recursion(xd_friend,yd_friend, x, y,phi,cid,sim,cell_list, possible_defect_pts, pt_colors, rn, nn, fig_cnt)
-
-		# Hit gold with first friends
-		if (dmax_1>-defect_strength_cut_max-0.5 and dmax_1<defect_strength_cut_max-0.5):
-		    DEFECT_BOOL = TRUE;
-		    cc = 'r'
-		    xd,yd = xd_friend,yd_friend
-		    break
-
-		elif (dmax_1>0.5-defect_strength_cut_max and dmax_1<defect_strength_cut_max+0.5):
-		    DEFECT_BOOL = TRUE;
-		    cc = 'g'
-		    xd,yd = xd_friend,yd_friend
-		    break
-
-		# Try again
-		elif np.abs(dmax-0.5) < np.abs(dmax_1-0.5) or np.abs(dmax+0.5) < np.abs(dmax_1+0.5):
-		    friend_list2 = find_friends(dmax_1, xd, yd, rcut, inner_radius, nfriends)
-
-
-		### Second iteration	    
-		for xd_friend2,yd_friend2 in friend_list2:
-			
-		    dmax_2 = calculate_defect_recursion(xd_friend2,yd_friend2, x, y,phi,cid,sim,cell_list, possible_defect_pts, pt_colors, rn, nn, fig_cnt)
-
-		    # Hit gold with second friends
-		    if (dmax>-defect_strength_cut_max-0.5 and dmax<defect_strength_cut_max-0.5):
-			DEFECT_BOOL = TRUE;
-			cc = 'r'
-			xd,yd = xd_friend2,yd_friend2
-			BREAK_ALL = TRUE
-			break
-
-		    elif (dmax>0.5-defect_strength_cut_max and dmax<defect_strength_cut_max+0.5):
-			DEFECT_BOOL = TRUE;
-			cc = 'g'
-			xd,yd = xd_friend2,yd_friend2
-			BREAK_ALL = TRUE
-			break
-
-		    # Try again
-		    elif np.abs(dmax_1-0.5) < np.abs(dmax_2-0.5) or np.abs(dmax_1+0.5) < np.abs(dmax_2+0.5):
-			friend_list3 = find_friends(dmax, xd, yd, rcut, inner_radius, nfriends)
-
-			### Last iteration	    
-			for xd_friend3,yd_friend3 in friend_list3:
-			    dmax_3 = calculate_defect_recursion(xd_friend2,yd_friend2, x, y,phi,cid,sim,cell_list, possible_defect_pts, pt_colors, rn, nn, fig_cnt)
-			    # Hit gold on last try
-			    if (dmax>-defect_strength_cut_max-0.5 and dmax<defect_strength_cut_max-0.5):
-				DEFECT_BOOL = TRUE;
-				cc = 'r'
-				xd,yd = xd_friend3,yd_friend3
-				BREAK_ALL = TRUE
-				break
-			    elif (dmax>0.5-defect_strength_cut_max and dmax<defect_strength_cut_max+0.5):
-				DEFECT_BOOL = TRUE;
-				cc = 'g'
-				xd,yd = xd_friend3,yd_friend3
-				BREAK_ALL = TRUE
-				break
-
-    ### plot the defect
-    
-    if cc == 'w' or cc == 'r' or cc == 'g':
-        possible_defect_pts.append([xd, yd])   
+        possible_defect_pts.append([xd, yd, dmax])
         pt_colors.append(cc)
         
-    if len(pt_colors) % 100 == 0:
-        savepath = '/usr/users/iff_th2/duman/Desktop/figcontainer/figure_' + str(fig_cnt) + '.png'
+    ### check +1/2 defects
+    
+    elif (dmax > 0.5-dcut and dmax < dcut+0.5):
+        DEFECT_BOOL = True
+        cc = 'g'
+        possible_defect_pts.append([xd, yd, dmax])
+        pt_colors.append(cc)
+
+    ### if the point is not a defect
+    
+    else:
+        return
+    
+    ### search around friends of friends total_rec_num times max 
+    
+    if DEFECT_BOOL:
+        print "Commencing recursion loop"
+        friend_list = recursion.find_friends(dmax, xd, yd, cell_list.rcut, rn, nn)
+        recursion.recursion(possible_defect_pts, friend_list, dmax, cc, rn, nn, x, y, \
+						phi_nematic, nseg, \
+						cid, sim, cell_list, \
+						possible_defect_pts, \
+						pt_colors, fig_cnt, total_rec_num, 0)
+    
+
+
+    ### plot the defects
+        
+    if len(pt_colors) % 50 == 0:
+        savepath = '/usr/users/iff_th2/duman/Desktop/figcontainer/fig_' + str(fig_cnt) + '.png'
         plot_defects.plot_defect(x, y, phi, phi_nematic, cid, xd, yd, directors, corrected_directors, \
                         dmax, sim, cell_list, possible_defect_pts, pt_colors, xcm, ycm, savepath)
     
     return  
+
+##############################################################################
+        
+def recompute_defects(xcmp, ycmp, beads, sim, rcut, dcut, step):
+    """ recompute the defect strengths of the ultimate defect points"""
+    
+    ### allocate array to divide the full circle into orthants
+    
+    nseg = 10
+    
+    ### generate a cell based linked list to browse beads based on position
+    
+    x = beads.x[step, 0, :]
+    y = beads.x[step, 1, :]
+    cell_list = linked_list(x, y, sim, rcut)
+    
+    ### calculate the bead orientations
+    
+    phi = misc_tools.compute_orientation(x, y, sim.lx, sim.ly, sim.nbpf)
+    
+    ### generate phi_nematic array by turning the orientations headless
+    
+    phi_nematic = np.zeros((len(x)))
+    for i in range(len(x)):
+        pi = phi[i]
+        if pi < 0:
+            pi += np.pi
+        phi_nematic[i] = pi    
+
+    ndefects = len(xcmp)
+    fig_cnt = 0
+    defect_pts = []
+    pt_colors = []
+    for j in range(ndefects):
+        
+        fig_cnt += 1
+        xd = xcmp[j]
+        yd = ycmp[j]
+
+        ### calculate and average the order parameter matrix per orthant
+       
+        qxx, qxy, qyy, xcm, ycm = calculate_order_param_matrix(xd, yd, nseg, x, y, \
+                                                               phi_nematic, sim, cell_list)
+        
+        ### calculate the nematic directors per orthant
+        
+        directors, corrected_directors = calculate_nematic_directors(qxx, qxy, qyy, nseg)
+    
+        ### determine the defect strength
+        
+        dmax = calculate_defect_strength(corrected_directors)
+        cc = 'colors'
+        
+        ### check for -1/2 defects
+        
+        if (dmax > -dcut-0.5 and dmax < dcut-0.5):
+            cc = 'r'
+            defect_pts.append([xd, yd, dmax])
+            pt_colors.append(cc)
+            
+        ### check +1/2 defects
+        
+        elif (dmax > 0.5-dcut and dmax < dcut+0.5):
+            cc = 'g'
+            defect_pts.append([xd, yd, dmax])
+            pt_colors.append(cc)
+        
+        ### plot the defects
+            
+        savepath = '/usr/users/iff_th2/duman/Desktop/figcontainer/defects/fig_' + str(fig_cnt) + '.png'
+        plot_defects.plot_defect(x, y, phi, phi_nematic, beads.cid, xd, yd, \
+                                 directors, corrected_directors, \
+                                 dmax, sim, cell_list, defect_pts, pt_colors, \
+                                 xcm, ycm, savepath)
+    print defect_pts
+    return defect_pts
             
 ##############################################################################
         
-def find_defects(beads, sim, step, rcut, npoints, rn, dn, nn):
+def find_defects(beads, sim, step, rcut, npoints, rn, dn, nn, dcut):
     """ find the defect points"""
     
     ### generate a cell based linked list to browse beads based on position
@@ -541,9 +530,38 @@ def find_defects(beads, sim, step, rcut, npoints, rn, dn, nn):
         fig_cnt += 1
         compute_single_defect(point[0], point[1], beads.x[step, 0, :], beads.x[step, 1, :], \
                                   phi, beads.cid, sim, cell_list, possible_defect_pts, \
-                                      pt_colors, rn, nn, fig_cnt)
+                                      pt_colors, rn, nn, dcut, fig_cnt)
         
-               
+    return possible_defect_pts
+        
+##############################################################################
+
+def save_data(points, sfl):
+    """ save the data on possible defect points"""
+
+    savefolder = '/usr/users/iff_th2/duman/Defects/Output/'
+    savefile = savefolder + sfl
+    
+    fl = open(savefile, 'w')
+    npoints = len(points)
+    for j in range(npoints):
+        fl.write(str(points[j][0]) + '\t' + str(points[j][1]) + '\t' + str(points[j][2]) + '\n')
+    fl.close()
+
+    return
+
+##############################################################################
+
+def load_data():
+    """ load the data on possible defect points"""
+
+    loadfolder = '/usr/users/iff_th2/duman/Defects/Output/'
+    loadfile = loadfolder + 'possible_defect_pts.txt'
+    
+    data = np.transpose(np.loadtxt(loadfile, dtype=np.float64))
+
+    return data
+                   
 ##############################################################################
 
 def main():
@@ -558,17 +576,40 @@ def main():
     ### read the data and general informaion from the folder
     
     beads, sim = read_data(args.folder)
-    
+
     ### find defects
     
     rcut = 15.              # defect search radius
     step = 300              # time step search is being performed
     npoints = 3000          # number of points that is going to be checked
-    rn = 10.                # inner radius of the shell where neighbor search is going to performed
+    rn = 0.75*rcut          # inner radius of the shell where neighbor search is going to performed
     dn = 5.                 # search radius/depth of the shell
     nn = 10                 # number of neighbor points to pop up
-    find_defects(beads, sim, step, rcut, npoints, rn, dn, nn)
+    dcut = 0.1              # defect strength cut
+    #possible_defect_pts = find_defects(beads, sim, step, rcut, npoints, rn, dn, nn, dcut)
+    
+    ### save the possible defect points
+    
+    #save_data(possible_defect_pts, 'possible_defect_pts.txt')
+    
+    ### load the possible defect points
+    
+    possible_defect_pts = load_data()
+    
+    ### cluster the possible defect points and plot the cluster
+    
+    dcrit = 15.             # cluster threshold criteria
+    xcm, ycm = examine_clusters.cluster_analysis(possible_defect_pts, dcrit, sim, step, \
+                                                 beads.x[step, 0, :], beads.x[step, 1, :], beads.cid)
 
+    ### for each of the defect points found by clustering recalculate defect strength and plot each point
+
+    defect_pts = recompute_defects(xcm, ycm, beads, sim, rcut, dcut, step)    
+
+    ### save the ultimate defect points
+    
+    save_data(defect_pts, 'defect_pts.txt')
+    
     return
     
 ##############################################################################

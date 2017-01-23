@@ -3,18 +3,85 @@
 
 ##############################################################################
 
-import argparse
 import numpy as np
-import os
-import h5py
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-import misc_tools
-import math
 from matplotlib.patches import Circle
-from numpy import linalg as LA
 
+##############################################################################
+
+class Simulation:
+    """ data structure for storing general simulation information"""
+
+    def __init__(self, lx, ly, dt, nsteps, nbeads, nsamp, nbpf, density, kappa, \
+               fp, kT, bl, sigma, gamma):
+        
+        self.lx = float(lx)
+        self.ly = float(ly)
+        self.dt = dt
+        self.nsteps = int(nsteps)
+        self.nbeads = int(nbeads)
+        self.nsamp = 10000
+        self.nbpf = 51
+        self.density = 0.8
+        self.fp = fp
+        self.kappa = kappa
+        self.bl = 0.5
+        self.sigma = sigma
+        self.kT = kT
+        self.gamma_n = gamma
+        
+        ### normalize certain variables
+
+        self.nfils = self.nbeads/self.nbpf        
+        #self.lx /= self.bl
+        #self.ly /= self.bl   
+        self.dt *= self.nsamp
+        
+        ### define more simulation parameters
+        
+        self.length = self.nbpf*self.bl
+        #self.N_avg = np.average(self.nbpc)
+        #self.r_avg = self.bl*self.N_avg/2/np.pi
+        #self.tau_D = self.r_avg**2 * self.gamma_n * self.N_avg / self.kT
+        #self.tau_A = 2 * self.r_avg * self.gamma_n / self.fp
+        
+        return
+
+##############################################################################
+        
+class Subplots:
+    """ plot structure"""
+    
+    totcnt = -1             # Total number of subplots 
+    
+    def __init__(self, f, l, s, b, t):
+        self.fig = f        # Figure axes handle
+        self.length = l     # Length of the subplot box 
+        self.sep = s        # Separation distance between subplots 
+        self.beg = b        # Beginning (offset) in the figure box
+        self.tot = t        # Total number of subplots in the x direction
+        
+        return
+        
+    def addSubplot(self):
+        """ add a subplot in the grid structure"""
+        
+        ### increase the number of subplots in the figure
+        
+        self.totcnt += 1
+        
+        ### get indices of the subplot in the figure
+        
+        self.nx = self.totcnt%(self.tot)
+        self.ny = self.totcnt/(self.tot)
+        
+        self.xbeg = self.beg + self.nx*self.length + self.nx*self.sep
+        self.ybeg = self.beg + self.ny*self.length + self.ny*self.sep
+        
+        return self.fig.add_axes([self.xbeg,self.ybeg,self.length,self.length])
+        
 ##############################################################################
 
 def plot_defect(xp, yp, phi, phi_nematic, cid, xdp, ydp, directors, corrected_directors, \
