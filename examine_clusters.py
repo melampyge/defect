@@ -387,8 +387,8 @@ def find_com_clusters_weight(xcl, ycl, clusters, lx, ly, d):
             # so d[mi] will give you the particle index
             xcm[i] += xcl[mi]*dweight[mi]
             ycm[i] += ycl[mi]*dweight[mi]
-        xcm[i] /= npts*dtotal[i]
-        ycm[i] /= npts*dtotal[i]
+        xcm[i] /= dtotal[i]
+        ycm[i] /= dtotal[i]
 
     ### put the center of masses back inside the box
     
