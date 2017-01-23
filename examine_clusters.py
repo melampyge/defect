@@ -350,7 +350,6 @@ def find_com_clusters(xcl, ycl, clusters, lx, ly):
 def find_com_clusters_weight(xcl, ycl, clusters, lx, ly, d):
     """ find the center of mass of clusters"""
     
-    ### NOTE TO ARVIND:
     # clusters is a list containing the cluster id in the first dimension
     # and the number of points inside the cluster inside the each list element
     # d: is an array containing defect strength of the point
@@ -358,24 +357,36 @@ def find_com_clusters_weight(xcl, ycl, clusters, lx, ly, d):
     
     ### get the number of clusters
     
-    nclusters = len(clusters)   
+    nclusters = len(clusters)
+    
     xcm = np.zeros((nclusters), dtype=np.float64)
     ycm = np.zeros((nclusters), dtype=np.float64)
     
-    ### run over the clusters
+    ### Build weights array based on defect strengths
+    dweight = np.zeros(d.shape)
+    dtotal  = np.zeros(d.shape)         # normalization of weights
+                                        # sum of wghts of defects in a cluster=1
+    dweight[d<0] = 1./np.abs(d[d<0]+0.5)    # -1/2 defect weights
+    dweight[d>0] = 1./np.abs(d[d>0]-0.5)    # +1/2 defect weights
     
+    ### run over all clusters
     for i in range(nclusters):
-        
-        ### run over the points in the cluster
-        
+        ### run over all points in the cluster
         npts = len(clusters[i])
         for j in range(npts):
-            mi = clusters[i][j]     # this accesses the particle index
-            # so d[mi] will give you the particle index
-            xcm[i] += xcl[mi]
-            ycm[i] += ycl[mi]
-        xcm[i] /= npts
-        ycm[i] /= npts
+            mi = clusters[i][j]         # accesses the particle index
+            dtotal[i] += dweight[mi]    # adds up total weight of all defects
+    
+    ### run over the clusters
+    for i in range(nclusters):
+        ### run over the points in the cluster
+        npts = len(clusters[i])
+        for j in range(npts):
+            mi = clusters[i][j]     # accesses the particle index
+            xcm[i] += xcl[mi]*dweight[mi]
+            ycm[i] += ycl[mi]*dweight[mi]
+        xcm[i] /= npts*dtotal[i]
+        ycm[i] /= npts*dtotal[i]
 
     ### put the center of masses back inside the box
     
