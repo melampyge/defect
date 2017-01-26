@@ -244,7 +244,7 @@ def plot_defect(xp, yp, phi, phi_nematic, cid, xdp, ydp, directors, corrected_di
     ### plot the circle around the point
     
     ax2.plot(rcut*np.cos(t) + xd, rcut*np.sin(t) + yd, color='k')
-    ax2.quiver(xcm2, ycm2, np.cos(directors)*10, np.sin(directors)*10, alpha=1.0)
+    ax2.quiver(xcm2, ycm2, np.cos(directors)*10, np.sin(directors)*10, alpha=1.0, headlength=0, headaxislength=0)
 
     
     tarvind = np.tan(np.linspace(0, np.pi, num=5, endpoint=False))

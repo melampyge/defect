@@ -602,7 +602,7 @@ def main():
     nn = 5                  # number of neighbor points to pop up
     dcut = 0.1              # defect strength cut
     total_rec_num = 3       # total number of recursions to find friends of friends and so on    
-    dcrit = 15.             # cluster threshold criteria
+    dcrit = 10.             # cluster threshold criteria
 
     for step in range(args.inittime, args.fintime):
         
@@ -610,31 +610,33 @@ def main():
     
         ### find the possible defect points
         
-        possible_defect_pts = find_defects(beads, sim, step, rcut, npoints, \
-                                           rn, dn, nn, total_rec_num, dcut)
+        #possible_defect_pts = find_defects(beads, sim, step, rcut, npoints, \
+        #                                   rn, dn, nn, total_rec_num, dcut)
         
         ### save the possible defect points
         
-        sfilepath = args.savefolder + 'possible_defect_pts_' + str(step) + '.txt'
-        save_data(possible_defect_pts, sfilepath)
+        #sfilepath = args.savefolder + 'possible_defect_pts_' + str(step) + '.txt'
+        #save_data(possible_defect_pts, sfilepath)
         
         ### load the possible defect points
         
-#        possible_defect_pts = load_data(sfilepath)
+        sfilepath = args.savefolder + 'possible_defect_pts_' + str(step) + '.txt'
+        possible_defect_pts = load_data(sfilepath)
         
         ### cluster the possible defect points and plot the cluster
         
-#        xcm, ycm = examine_clusters.cluster_analysis(possible_defect_pts, dcrit, sim, step, \
-#                                                     beads.x[step, 0, :], beads.x[step, 1, :], beads.cid)
+        xcm, ycm = examine_clusters.cluster_analysis(possible_defect_pts, dcrit, sim, step, \
+                                                     beads.x[step, 0, :], beads.x[step, 1, :], beads.cid)
     
         ### for each of the defect points found by clustering recalculate defect strength and plot each point
     
-#        defect_pts = recompute_defects(xcm, ycm, beads, sim, rcut, dcut, step, args.figfolder)    
+        defect_pts = recompute_defects(xcm, ycm, beads, sim, rcut, dcut, step, args.figfolder)  
+        print defect_pts
     
         ### save the ultimate defect points
         
-#        sfilepath = args.savefolder + 'defect_pts_' + str(step) + '.txt'
-#        save_data(defect_pts, sfilepath)
+        sfilepath = args.savefolder + 'defect_pts_' + str(step) + '.txt'
+        save_data(defect_pts, sfilepath)
     
     return
     

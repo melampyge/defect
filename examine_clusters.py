@@ -80,6 +80,18 @@ def gen_linked_list(x, y, lx, ly, dcrit, npoints):
     for i in range(npoints):
         segx = int(x[i]/lx*nsegx)
         segy = int(y[i]/ly*nsegy)
+        if segx >= nsegx:
+            segx -= nsegx
+            print x[i], lx, segx, nsegx
+        elif segx < 0:
+            segx += nsegx
+            print x[i], lx, segx, nsegx            
+        if segy >= nsegy:
+            segy -= nsegy-1
+            print y[i], ly, segy, nsegy
+        elif segy < 0:
+            segy += nsegy
+            print y[i], ly, segy, nsegy            
         cell = segx*nsegy + segy
         llist[i] = head[cell]
         head[cell] = i
@@ -281,7 +293,7 @@ def cluster_hist_1d(xcl, ycl, lx, ly, npts, dcrit):
 def correct_pbc_single(xcl, ycl, lx, ly, npts):
     """ correct periodic boundary conditions of all points one by one separately"""
     
-    ### loop over individual point in the cluster and connect nearest neighbors
+    ### loop over individual points in the cluster and connect nearest neighbors
     
     for j in range(npts-1):
         x0 = xcl[j]
@@ -362,7 +374,8 @@ def find_com_clusters_weight(xcl, ycl, clusters, lx, ly, d):
     xcm = np.zeros((nclusters), dtype=np.float64)
     ycm = np.zeros((nclusters), dtype=np.float64)
     
-    ### Build weights array based on defect strengths
+    ### build weights array based on defect strengths
+    
     dweight = np.zeros(d.shape)
     dtotal  = np.zeros(d.shape)         # normalization of weights
                                         # sum of wghts of defects in a cluster=1
@@ -370,23 +383,29 @@ def find_com_clusters_weight(xcl, ycl, clusters, lx, ly, d):
     dweight[d>0] = 1./np.abs(d[d>0]-0.5)    # +1/2 defect weights
     
     ### run over all clusters
+    
     for i in range(nclusters):
+        
         ### run over all points in the cluster
+        
         npts = len(clusters[i])
         for j in range(npts):
             mi = clusters[i][j]         # accesses the particle index
             dtotal[i] += dweight[mi]    # adds up total weight of all defects
     
     ### run over the clusters
+    
     for i in range(nclusters):
+        
         ### run over the points in the cluster
+        
         npts = len(clusters[i])
         for j in range(npts):
-            mi = clusters[i][j]     # accesses the particle index
+            mi = clusters[i][j]         # accesses the particle index
             xcm[i] += xcl[mi]*dweight[mi]
             ycm[i] += ycl[mi]*dweight[mi]
-        xcm[i] /= npts*dtotal[i]
-        ycm[i] /= npts*dtotal[i]
+        xcm[i] /= dtotal[i]
+        ycm[i] /= dtotal[i]
 
     ### put the center of masses back inside the box
     
@@ -418,8 +437,12 @@ def separate_clusters(cl_list, clusters, d):
         ### run over the points in the cluster
         
         npts = len(cl_list[i])
+        k = -1
+        
         for j in range(npts):
-            mi = cl_list[i][j]
+            
+            k += 1
+            mi = cl_list[i][k]
             #print 'cluster_d = ', cl_defect_strength[i], ' / d = ', d[mi]
             
             ### if the defect strength is assigned for the first time ...
@@ -442,6 +465,8 @@ def separate_clusters(cl_list, clusters, d):
                 cl_defect_strength[new_cluster_id] = d[mi] 
                 clusters[mi] = new_cluster_id
                 cl_list[new_cluster_id].append(mi)
+                del cl_list[i][k]
+                k -= 1
                 
             ### if the defect strength of the current point is different than the assigned one ...
             
@@ -456,8 +481,10 @@ def separate_clusters(cl_list, clusters, d):
                 
                 cl_defect_strength[new_cluster_id] = d[mi] 
                 clusters[mi] = new_cluster_id
-                cl_list[new_cluster_id].append(mi)        
-
+                cl_list[new_cluster_id].append(mi) 
+                del cl_list[i][k]
+                k -= 1
+               
     return
     
 ##############################################################################
@@ -512,8 +539,8 @@ def plot_clusters(xp, yp, xcmp, ycmp, cl_list, cl_id, sim, xallp, yallp, cid):
     ax0.axis('equal')
     line0 = ax0.scatter(x, y, s=10, c=cl_id, cmap=plt.cm.get_cmap('jet',quant_steps), 
                 edgecolors='None', alpha=0.7, vmin=0, vmax=len(cl_list), norm=norm_cluster, rasterized=True)
-    line1 = ax0.scatter(xall, yall, s=1, c=cid, cmap=plt.cm.get_cmap('jet',quant_steps), 
-                edgecolors='None', alpha=0.4, vmin=0, vmax=sim.nfils, norm=norm_filid, rasterized=True)
+#    line1 = ax0.scatter(xall, yall, s=1, c=cid, cmap=plt.cm.get_cmap('jet',quant_steps), 
+#                edgecolors='None', alpha=0.4, vmin=0, vmax=sim.nfils, norm=norm_filid, rasterized=True)
     ax0.plot(xcm, ycm, 'x', markersize=10, color='k')    
     
     ### labels

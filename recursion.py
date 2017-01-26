@@ -14,6 +14,8 @@ def recursion(defect_cluster_list, friend_list, dmax, cc, \
 		pt_colors, fig_cnt, total_rec_num, rec_num):
     """ check friend of main point as well as friends of friends and so on"""
     
+    ### increase the recursion counter if we are within range
+    
     if total_rec_num == rec_num:
         return
         
@@ -31,7 +33,7 @@ def recursion(defect_cluster_list, friend_list, dmax, cc, \
             
             ### for +1/2 defects
             
-            if cc=='g' and np.abs(dmax-0.5) > np.abs(dmax_n-0.5):
+            if cc == 'g' and np.abs(dmax-0.5) > np.abs(dmax_n-0.5):
                 
                 pt_colors.append(cc)
                 defect_cluster_list.append([xd_friend, yd_friend, dmax_n])
