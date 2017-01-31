@@ -602,7 +602,7 @@ def cluster_analysis(points, dcrit, sim, step, xall, yall, cid):
     
     ### plot the clusters
     
-    plot_clusters(xclusters, yclusters, xcm, ycm, cl_list, clusters, sim, xall, yall, cid)    
+    #plot_clusters(xclusters, yclusters, xcm, ycm, cl_list, clusters, sim, xall, yall, cid)    
     
     return xcm, ycm      
                 

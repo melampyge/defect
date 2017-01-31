@@ -349,7 +349,7 @@ def calculate_order_param_matrix(xd, yd, nseg, x, y, phi_nematic, sim, cell_list
                 
                 val = cell_list.llist[val]
 
-    ### take the average of the nematic directors and center of masses per orthant
+    ### take the average of the order parameter matrix and center of masses per orthant
     
     qxx /= counter
     qxy /= counter
@@ -362,7 +362,7 @@ def calculate_order_param_matrix(xd, yd, nseg, x, y, phi_nematic, sim, cell_list
     
 ##############################################################################
         
-def compute_single_defect(xd, yd, x, y, phi, cid, sim, cell_list, \
+def compute_single_defect(xd, yd, x, y, phi, phi_nematic, cid, sim, cell_list, \
                           possible_defect_pts, pt_colors, \
                           rn, nn, total_rec_num, dcut, fig_cnt):
     """ compute the defect strength of a single point given with (xd, yd)"""
@@ -371,15 +371,6 @@ def compute_single_defect(xd, yd, x, y, phi, cid, sim, cell_list, \
     
     nseg = 10
     DEFECT_BOOL = False
-
-    ### generate phi_nematic array by turning the orientations headless
-    
-    phi_nematic = np.zeros((len(x)))
-    for i in range(len(x)):
-        pi = phi[i]
-        if pi < 0:
-            pi += np.pi
-        phi_nematic[i] = pi
 
     ### calculate and average the order parameter matrix per orthant
    
@@ -527,6 +518,15 @@ def find_defects(beads, sim, step, rcut, npoints, rn, dn, nn, total_rec_num, dcu
     
     phi = misc_tools.compute_orientation(beads.x[step, 0, :], beads.x[step, 1, :], \
                                              sim.lx, sim.ly, sim.nbpf)
+
+    ### generate phi_nematic array by turning the orientations headless
+    
+    phi_nematic = np.zeros((npoints))
+    for i in range(npoints):
+        pi = phi[i]
+        if pi < 0:
+            pi += np.pi
+        phi_nematic[i] = pi
     
     ### choose random trial points and determine their defect strength
     ### do mesh refinement for points around existing defects
@@ -539,7 +539,7 @@ def find_defects(beads, sim, step, rcut, npoints, rn, dn, nn, total_rec_num, dcu
         #print 'Search for a new point commences with the following coordinates: ', point[0], ' ', point[1]
         fig_cnt += 1
         compute_single_defect(point[0], point[1], beads.x[step, 0, :], beads.x[step, 1, :], \
-                                  phi, beads.cid, sim, cell_list, possible_defect_pts, \
+                                  phi, phi_nematic, beads.cid, sim, cell_list, possible_defect_pts, \
                                       pt_colors, rn, nn, total_rec_num, dcut, fig_cnt)
         
     return possible_defect_pts

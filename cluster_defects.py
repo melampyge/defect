@@ -584,8 +584,8 @@ def main():
     parser.add_argument("-figfl", "--figfolder", nargs="?", \
                         const='/usr/users/iff_th2/duman/Defects/Output/Figures/', \
                         help="Folder to save the figures inside")  
-    parser.add_argument("-ti", "--inittime", type=int, help="Initial time step")
-    parser.add_argument("-tf", "--fintime", type=int, help="Final timestep")            
+    parser.add_argument("-ti", "--inittime", nargs="?", const=100, type=int, help="Initial time step")
+    parser.add_argument("-tf", "--fintime", nargs="?", const=153, type=int, help="Final timestep")            
     parser.add_argument("-s","--save_eps", action="store_true", help="Decide whether to save in eps or not")            
     args = parser.parse_args()
     
@@ -631,7 +631,6 @@ def main():
         ### for each of the defect points found by clustering recalculate defect strength and plot each point
     
         defect_pts = recompute_defects(xcm, ycm, beads, sim, rcut, dcut, step, args.figfolder)  
-        print defect_pts
     
         ### save the ultimate defect points
         
