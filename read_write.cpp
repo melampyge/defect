@@ -203,4 +203,122 @@ void write_data (int step, double *x, double *y, double *d, int N) {
 }
     
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 
+void write_h5_data (char* savefolder, int step, double *x, double *y, double *d, int N, int proc_rank, int procs_size, int *counts, int *offsets, MPI_Comm comm) {
+  /* save the defect point data at this timestep in hdf5 format */
+  
+  if (N > 0) {
     
+    // generate the save path address
+    
+    char step_string[30];
+    char buffer[30] = ".h5";
+    char spath[100] = "/possible_defect_pts_cpp_";
+    sprintf(step_string, "%d", step);
+    char savefilepath[200];
+    sprintf(savefilepath, "%s", savefolder);
+    strcat(savefilepath, spath);
+    strcat(savefilepath, step_string);
+    strcat(savefilepath, buffer);
+    
+    // declare variables for data writing
+    
+    int rank;
+    hsize_t dims;
+    hid_t acc_template;
+    hid_t fl;
+    int ierr;
+    hid_t dataspace, memspace, dataset;
+    hid_t err;
+    hsize_t count;
+    hsize_t offset;
+    
+    // open the file handle
+    
+    acc_template = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(acc_template, comm, MPI_INFO_NULL);
+    fl = H5Fcreate(savefilepath, H5F_ACC_TRUNC, H5P_DEFAULT, acc_template);
+    ierr = H5Pclose(acc_template);
+    
+    /* write x position */
+    
+    // create the dataspace
+    
+    rank = 1;
+    dims = N;
+    dataspace = H5Screate_simple(rank, &dims, NULL);
+
+    // create the dataset
+    
+    dataset = H5Dcreate(fl, "/xpos", H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Sclose(dataspace);
+    
+    // figure out the offset into the dataspace for the current process
+    /* each process defines dataset in memory and writes it to the hyperslab in each file */
+    
+    offset = offsets[proc_rank];
+    count = counts[proc_rank];
+    memspace = H5Screate_simple(rank, &count, NULL);
+    dataspace = H5Dget_space(dataset);
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &offset, NULL, &count, NULL);
+      
+    // write the data collectively
+    // -- for independent access: H5FD_MPIO_INDEPENDENT
+    // -- for collective access: H5FD_MPIO_COLLECTIVE
+    
+    acc_template = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(acc_template, H5FD_MPIO_COLLECTIVE);
+    err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, acc_template, x);
+ 
+    H5Pclose(acc_template);
+    H5Sclose(memspace);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    
+    /* write y position */
+    
+    dataspace = H5Screate_simple(rank, &dims, NULL);    
+    dataset = H5Dcreate(fl, "/ypos", H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Sclose(dataspace);
+    offset = offsets[proc_rank];
+    count = counts[proc_rank];
+    memspace = H5Screate_simple(rank, &count, NULL);
+    dataspace = H5Dget_space(dataset);
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &offset, NULL, &count, NULL);
+    acc_template = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(acc_template, H5FD_MPIO_COLLECTIVE);
+    err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, acc_template, y);
+
+    H5Pclose(acc_template);
+    H5Sclose(memspace);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    
+    /* write d defect strength */
+    
+    dataspace = H5Screate_simple(rank, &dims, NULL);    
+    dataset = H5Dcreate(fl, "/dstr", H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Sclose(dataspace);
+    offset = offsets[proc_rank];
+    count = counts[proc_rank];
+    memspace = H5Screate_simple(rank, &count, NULL);
+    dataspace = H5Dget_space(dataset);
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &offset, NULL, &count, NULL);
+    acc_template = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(acc_template, H5FD_MPIO_COLLECTIVE);
+    err = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace, dataspace, acc_template, d);
+    
+    // close the handles
+    
+    H5Pclose(acc_template);
+    H5Sclose(memspace);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    H5Fclose(fl);
+  
+  }
+
+  return;
+}
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////////////

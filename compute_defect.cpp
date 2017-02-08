@@ -151,11 +151,11 @@ double compute_single_defect (double xd, double yd, double *x, double *y, double
   // allocate arrays to divide the full circle into orthants 
   
   int northants = 10;
-  double *qxx = new double[northants];
-  double *qxy = new double[northants];
-  double *qyy = new double[northants];
-  int *counter = new int[northants];
-  double *directors = new double[northants];
+  double qxx[northants];
+  double qxy[northants];
+  double qyy[northants];
+  int counter[northants];
+  double directors[northants];
   for (int i = 0; i < northants; i++) {
     qxx[i] = 0.;  qxy[i] = 0.;  qyy[i] = 0.;  counter[i] = 0;  directors[i] = 0.;
   }
@@ -171,7 +171,7 @@ double compute_single_defect (double xd, double yd, double *x, double *y, double
   // calculate the defect strength
   
   double dst = (directors[northants-1] - directors[0])/2./pi;
-    
+  
   return dst; 
 }
 
@@ -219,7 +219,7 @@ void search_neighborhood (double xd, double yd, double dmax, double dlabel, doub
     }
 
     // register the point into the array if the point is a defect and start recursion loop
-    
+
     if (point_is_defect) {
 
       // save the point as defect
@@ -232,7 +232,7 @@ void search_neighborhood (double xd, double yd, double dmax, double dlabel, doub
       // search the neighborhood of the point
       
       search_neighborhood(xn, yn, dst, dlabel, xdefects, ydefects, ddefects, cnt_defects, x, y, phi, head, llist, rcut, nsegx, nsegy, rn, nn, nr, dcut, lx, ly, randi, cnt_recursion);
-    }    
+    }   
   }
     
   return;
@@ -286,7 +286,7 @@ void search_main_pts (double *xdefects, double *ydefects, double *ddefects, int 
       xdefects[cnt_defects] = xpoints[i];	// save the x coordinate of the defect point
       ydefects[cnt_defects] = ypoints[i];	// save the y coordinate of the defect point
       ddefects[cnt_defects] = dst;		// save the defect strength of the point
-      
+
       // search the neighborhood of the point
       
       search_neighborhood(xpoints[i], ypoints[i], dst, dlabel, xdefects, ydefects, ddefects, cnt_defects, x, y, phi, head, llist, rcut, nsegx, nsegy, rn, nn, nr, dcut, lx, ly, randi, cnt_recursion);
