@@ -36,5 +36,5 @@ void read_single_pos_data(int step, hid_t dataset, hid_t dataspace, double *x, d
 void write_data (int step, double *x, double *y, double *d, int N);
 
 /* save the defect point data at this timestep in hdf5 format */
-void write_h5_data (char* savefolder, int step, double *x, double *y, double *d, int N, int proc_rank, int procs_size, int *counts, int *offsets, MPI_Comm comm);
+void write_h5_data (char* savefolder, int step, double *x, double *y, double *d, int N, int proc_rank, int procs_size, MPI_Comm comm);
 

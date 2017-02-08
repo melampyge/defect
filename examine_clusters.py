@@ -79,19 +79,9 @@ def gen_linked_list(x, y, lx, ly, dcrit, npoints):
     
     for i in range(npoints):
         segx = int(x[i]/lx*nsegx)
+        segx = (segx+nsegx) % nsegx
         segy = int(y[i]/ly*nsegy)
-        if segx >= nsegx:
-            segx -= nsegx
-            print x[i], lx, segx, nsegx
-        elif segx < 0:
-            segx += nsegx
-            print x[i], lx, segx, nsegx            
-        if segy >= nsegy:
-            segy -= nsegy-1
-            print y[i], ly, segy, nsegy
-        elif segy < 0:
-            segy += nsegy
-            print y[i], ly, segy, nsegy            
+        segy = (segy+nsegy) % nsegy
         cell = segx*nsegy + segy
         llist[i] = head[cell]
         head[cell] = i
@@ -114,15 +104,15 @@ def find_clusters(x, y, dcrit, npoints, sim):
     nsegx, nsegy, head, llist = gen_linked_list(x, y, sim.lx, sim.ly, dcrit, npoints)
     
     ### buld a neighborhood matrix based on the criterion dcrit
- 
+
     neighs = neighbors.ravel()
     performance_tools = performance_toolsWrapper.Performance_tools()
     performance_tools.fill_neigh_matrix(neighs, llist, head, nsegx, nsegy, x, y, npoints, sim.lx, sim.ly, dcrit)
-    
+
     ### recursive search for clusters within the neighbor matrix
 
     performance_tools.cluster_search(neighs, clusters, npoints)
-    
+
     return clusters
     
 ##############################################################################
@@ -178,14 +168,16 @@ def correct_cluster_pbc(x, y, clusters, lx, ly, dcrit, npoints):
         
         ### try first a simple 1D histogram method
         
-        flag_1d = cluster_hist_1d(xcl, ycl, lx, ly, npts, dcrit)
-        
+        #flag_1d = cluster_hist_1d(xcl, ycl, lx, ly, npts, dcrit)
+
         ### if the 1D histogram approach fails, correct the pbcs point by point
         
-        if flag_1d == 0:
-            isolated[i] = 0     # cluster is not isolated
-            correct_pbc_single(xcl, ycl, lx, ly, npts)
-            
+        #if flag_1d == 0:
+        #    isolated[i] = 0     # cluster is not isolated
+        #    correct_pbc_single(xcl, ycl, lx, ly, npts)
+        
+        correct_pbc_single(xcl, ycl, lx, ly, npts)
+        
         ### adjust center of mass of the entire cluster
         
         adjust_com_cluster(xcl, ycl, lx, ly, npts)
@@ -198,7 +190,7 @@ def correct_cluster_pbc(x, y, clusters, lx, ly, dcrit, npoints):
             ycluster[mi] = ycl[j]
             
     return xcluster, ycluster, isolated
-    
+
 ##############################################################################
 
 def expand_cluster(x, y, lx, ly, clusters, i):
@@ -307,9 +299,9 @@ def correct_pbc_single(xcl, ycl, lx, ly, npts):
 
     ### loop over all points in the cluster and adjust com position
     
-    for j in range(npts):
-        xcl[j] += -math.floor(xcl[j]/lx)*lx
-        ycl[j] += -math.floor(ycl[j]/ly)*ly
+#    for j in range(npts):
+#        xcl[j] += -math.floor(xcl[j]/lx)*lx
+#        ycl[j] += -math.floor(ycl[j]/ly)*ly
 
     return
 
@@ -341,20 +333,23 @@ def find_com_clusters(xcl, ycl, clusters, lx, ly):
     for i in range(nclusters):
         
         ### run over the points in the cluster
-        
+        #print 'cluster', i, '\n\n'
         npts = len(clusters[i])
         for j in range(npts):
             mi = clusters[i][j]     # this accesses the particle index
+            #if xcl[mi] < 0 or ycl[mi] < 0:
+            #print xcl[mi]*2., ycl[mi]*2., lx, lx*2.
             xcm[i] += xcl[mi]
             ycm[i] += ycl[mi]
         xcm[i] /= npts
         ycm[i] /= npts
-
+        #print 'COM=', xcm[i]*2., ycm[i]*2., '\n\n\n\n'
+        #exit()
     ### put the center of masses back inside the box
     
     xcm += -np.floor(xcm/lx)*lx
     ycm += -np.floor(ycm/ly)*ly
-    
+    #print zip(xcm*2., ycm*2.)
     return xcm, ycm  
     
 ##############################################################################
@@ -379,8 +374,13 @@ def find_com_clusters_weight(xcl, ycl, clusters, lx, ly, d):
     dweight = np.zeros(d.shape)
     dtotal  = np.zeros(d.shape)         # normalization of weights
                                         # sum of wghts of defects in a cluster=1
-    dweight[d<0] = 1./np.abs(d[d<0]+0.5)    # -1/2 defect weights
-    dweight[d>0] = 1./np.abs(d[d>0]-0.5)    # +1/2 defect weights
+    dmins = np.abs(d[d<0]+0.5)    
+    dplus = np.abs(d[d>0]-0.5)
+    dmins[dmins==0.] = 0.00000001
+    dplus[dplus==0.] = 0.00000001
+    dweight[d<0] = 1./dmins    # -1/2 defect weights
+    dweight[d>0] = 1./dplus    # +1/2 defect weights
+    #dweight[d<0] = np.exp(-dmin**2/0.5)
     
     ### run over all clusters
     
@@ -488,12 +488,64 @@ def separate_clusters(cl_list, clusters, d):
     return
     
 ##############################################################################
+    
+def threshold_clusters(cl_list, thrs):
+    """ threshold the clusters by size, delete any cluster below the input size"""
 
-def plot_clusters(xp, yp, xcmp, ycmp, cl_list, cl_id, sim, xallp, yallp, cid):
+    ### get the number of clusters
+    
+    nclusters = len(cl_list)
+    
+    ### run over the clusters deleting any cluster smaller than the threshold
+    
+    k = -1
+    for i in range(nclusters):
+        k += 1
+        size = len(cl_list[k])
+        if size < thrs:
+            del cl_list[k]
+            k -= 1
+
+    return
+##############################################################################    
+    
+def find_best_of_clusters(x, y, d, cl_list, clusters):
+    """ find the point with the best defect strength within the cluster"""
+    
+    ### allocate per cluster arrays
+    
+    nclusters = len(cl_list)
+    xcm = np.zeros((nclusters), dtype=np.float64)
+    ycm = np.zeros((nclusters), dtype=np.float64)
+    
+    ### loop over each cluster to find the point with the best defect strength within it
+    
+    for i in range(nclusters):
+        
+        npts = len(cl_list[i])
+        dcluster = np.zeros((npts), dtype=np.float32)
+        for j in range(npts):
+            mi = cl_list[i][j]
+            if d[mi] > 0:
+                dcluster[j] = np.abs(d[mi]-0.5)
+            else:
+                dcluster[j] = np.abs(0.5+d[mi])
+        bestd = min(dcluster)
+        bestid = np.argmin(dcluster)
+        mi = cl_list[i][bestid]
+        xcm[i] = x[mi]
+        ycm[i] = y[mi]
+        print d[mi]
+
+    return xcm, ycm
+    
+##############################################################################
+
+def plot_clusters(xp, yp, xcmp, ycmp, cl_list, cl_id, sim, xallp, yallp, cid, step):
     """ generate a plot of the atoms color coded with the cluster they belong"""
     
-    savefolder = '/usr/users/iff_th2/duman/Desktop/figcontainer'
-    savepath = savefolder + '/cluster.png'
+    savefolder = '/usr/users/iff_th2/duman/Desktop/figcontainer' 
+    savepath = savefolder + '/cluster_' + str(step) + '.png'
 
     print 'Number of clusters: ', len(cl_list)
 #    print 'List of clusters with point ids: ', cl_list
@@ -550,14 +602,14 @@ def plot_clusters(xp, yp, xcmp, ycmp, cl_list, cl_id, sim, xallp, yallp, cid):
 
     ### limits
 
-    ax0.set_xlim((-50, lx+50))
-    ax0.set_ylim((-50, ly+50))
+    #ax0.set_xlim((-50, lx+50))
+    #ax0.set_ylim((-50, ly+50))
     
     ### ticks
     
-    ax0.xaxis.set_ticks(np.linspace(0, lx, num_ticks, endpoint=True))
-    ax0.yaxis.set_ticks(np.linspace(0, ly, num_ticks, endpoint=True))
-    ax0.tick_params(axis='both', which='major', labelsize=20)
+    #ax0.xaxis.set_ticks(np.linspace(0, lx, num_ticks, endpoint=True))
+    #ax0.yaxis.set_ticks(np.linspace(0, ly, num_ticks, endpoint=True))
+    #ax0.tick_params(axis='both', which='major', labelsize=20)
 
     ### save
     
@@ -568,12 +620,13 @@ def plot_clusters(xp, yp, xcmp, ycmp, cl_list, cl_id, sim, xallp, yallp, cid):
 
 ##############################################################################
 
-def cluster_analysis(points, dcrit, sim, step, xall, yall, cid):
+def cluster_analysis(points, dcrit, ncrit, sim, step, xall, yall, cid):
     """ find clusters within the list of data points with a distance criterion"""
     
     ### discern information about the data points
     
     npoints = len(points[0])  
+    print 'possible points -> ', npoints
     x = np.array(points[0], dtype=np.float64)
     y = np.array(points[1], dtype=np.float64)
     d = np.array(points[2], dtype=np.float64)
@@ -582,7 +635,7 @@ def cluster_analysis(points, dcrit, sim, step, xall, yall, cid):
     # clusters is a per point array with each element representing the cluster id the point belongs to
     
     clusters = find_clusters(x, y, dcrit, npoints, sim)
-        
+
     ### transform the cluster data such that each cluster contains a list of points in that cluster
     
     cl_list = transform_cluster_data(clusters, npoints)
@@ -591,19 +644,24 @@ def cluster_analysis(points, dcrit, sim, step, xall, yall, cid):
     
     separate_clusters(cl_list, clusters, d)
     
+    ### threshold the clusters -- note the per atom array clusters is not correct anymore below this point
+    
+    threshold_clusters(cl_list, ncrit)
+    
     ### correct the cluster point positions with periodic boundary conditions
     
     xclusters, yclusters, isolated = correct_cluster_pbc(x, y, cl_list, sim.lx, sim.ly, dcrit, npoints)
     
     ### find the center of mass of clusters
-
+    
+    xcm, ycm = find_best_of_clusters(x, y, d, cl_list, clusters)
     #xcm, ycm = find_com_clusters(xclusters, yclusters, cl_list, sim.lx, sim.ly)
-    xcm, ycm = find_com_clusters_weight(xclusters, yclusters, cl_list, sim.lx, sim.ly, d)    
+    #xcm, ycm = find_com_clusters_weight(xclusters, yclusters, cl_list, sim.lx, sim.ly, d)    
     
     ### plot the clusters
     
-    #plot_clusters(xclusters, yclusters, xcm, ycm, cl_list, clusters, sim, xall, yall, cid)    
-    
+    plot_clusters(xclusters, yclusters, xcm, ycm, cl_list, clusters, sim, xall, yall, cid, step)    
+
     return xcm, ycm      
                 
 ##############################################################################

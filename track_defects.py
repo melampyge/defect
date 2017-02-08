@@ -374,7 +374,7 @@ def main():
     
     parser = argparse.ArgumentParser()
     parser.add_argument("-fl", "--folder", nargs="?", \
-                        const='/usr/users/iff_th2/duman/Defects/Output/', \
+                        const='/usr/users/iff_th2/duman/Defects/Output/cpp/', \
                         help="Folder containing data")
     parser.add_argument("-sfl", "--savefolder", nargs="?", \
                         const='/usr/users/iff_th2/duman/Defects/Output/', \

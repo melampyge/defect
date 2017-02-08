@@ -20,13 +20,13 @@ class Performance_tools {
     double dcrit2 = dcrit*dcrit;
       
     // loop over all central cells
-    
+
     for (int i = 0; i < nsegx; i++) {
       
       for (int j = 0; j < nsegy; j++) {
 	
         // get the head point of the current cell
-	
+		
         int sv1 = head[i*nsegy + j];
 	
         // loop over neighboring cells around the head cell
@@ -53,7 +53,7 @@ class Performance_tools {
 	      double x1 = x[val1]/lx;
               double y1 = y[val1]/ly;
 	      
-	          // walk along the linked list in the neighbor cell
+	      // walk along the linked list in the neighbor cell
 
               while (val2 != -1) {
                   if (val1 != val2) {
@@ -71,8 +71,9 @@ class Performance_tools {
                     double rsq = dx*dx + dy*dy;
 
                     if (rsq < dcrit2) {
-                      neighs[val1*npoints + val2] += 1;
-                      neighs[val2*npoints + val1] += 1;
+// 		      cout << val1 << "\t" << val2 << "\t" << (unsigned int)(val1*npoints + val2) << "\t" << (unsigned int)(val2*npoints + val1) << "\t" << npoints << "\t" << (unsigned int)(npoints*npoints) << endl;
+                      neighs[(unsigned int)(val1*npoints + val2)] += 1;
+                      neighs[(unsigned int)(val2*npoints + val1)] += 1;
                     }
                   }
                 val2 = llist[val2];
@@ -94,7 +95,7 @@ class Performance_tools {
     
     for (int j = 0; j < npoints; j++) {
       if (cl[j] == -1) {
-        if (neighs[i*npoints + j] > 0) {
+        if (neighs[(unsigned int)(i*npoints + j)] > 0) {
           cl[j] = cl[i];
           recursion(neighs, cl, j, npoints);
         }

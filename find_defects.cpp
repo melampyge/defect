@@ -51,7 +51,7 @@ int main (int argc, char *argv[]) {
   
   double rcut = 15.; 		// cut radius to calculate the order parameter inside
   int npoints = 40000;		// number of main points to search for
-  double rn = 0.65*rcut;	// inner radius of the shell where neighbor search is going to be performed
+  double rn = 0.75*rcut;	// inner radius of the shell where neighbor search is going to be performed
   double dn = 5.;		// depth of the shell (THIS IS NOT USED AT THE MOMENT!)
   int nr = 3;			// total number of recursions to search friends and then friends of friends and so on 
   int nn = 4; 			// number of neighbor points to check in each recursion

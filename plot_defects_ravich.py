@@ -9,6 +9,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.collections import LineCollection
+import time
 
 ##############################################################################
 
@@ -82,10 +83,9 @@ class Subplots:
         self.ybeg = self.beg + self.ny*self.length + self.ny*self.sep
         
         return self.fig.add_axes([self.xbeg,self.ybeg,self.length,self.length])
- 
-  
-##############################################################################
         
+##############################################################################
+
 def pretty_plot(xp, yp, cid, xdp, ydp, tail, dmax, cell_list, sim, savepath):
     """ plot the data"""
     
@@ -201,22 +201,20 @@ def pretty_plot(xp, yp, cid, xdp, ydp, tail, dmax, cell_list, sim, savepath):
 	    dy = np.sin(angle)*scale
 	    px.append(xd[i]); py.append(yd[i])
 	    pxy.append([[xd[i],yd[i]],[xd[i]+dx,yd[i]+dy]]) 
-     
-    alpha = 0.7
  
-    lc0 = LineCollection(nxy, colors='k', linewidths=(5.0,), alpha=alpha) # everything is a hack
-    lc1 = LineCollection(nxy, colors='r', linewidths=(3,), alpha=alpha)
+    lc0 = LineCollection(nxy, colors='k', linewidths=(5.0,)) # everything is a hack
+    lc1 = LineCollection(nxy, colors='r', linewidths=(3,))
 
 
-    lc2 = LineCollection(pxy, colors='k', linewidths=(5.0,), alpha=alpha) # everything is a hack
-    lc3 = LineCollection(pxy, colors='g', linewidths=(3,), alpha=alpha)
+    lc2 = LineCollection(pxy, colors='k', linewidths=(5.0,)) # everything is a hack
+    lc3 = LineCollection(pxy, colors='g', linewidths=(3,))
     lc0.set_zorder(99);     
     lc1.set_zorder(100)
-    ax1.scatter(nx, ny, c='r', s=60, edgecolors='k', alpha=alpha, zorder=100)
+    ax1.scatter(nx, ny, c='r', s=60, edgecolors='k', alpha=1.0, zorder=100)
 
     lc2.set_zorder(100);
     lc3.set_zorder(101)
-    ax1.scatter(px, py, c='g', s=60, edgecolors='k', alpha=alpha, zorder=101)
+    ax1.scatter(px, py, c='g', s=60, edgecolors='k', alpha=1.0, zorder=101)
 
     ax1.add_collection(lc0)
     ax1.add_collection(lc1)
@@ -237,12 +235,11 @@ def pretty_plot(xp, yp, cid, xdp, ydp, tail, dmax, cell_list, sim, savepath):
     #plt.savefig(savepath, dpi=200, bbox_inches='tight')
 
     plt.tight_layout()
-    plt.savefig(savepath, bbox_inches='tight', dpi=200)
+    plt.savefig("./test2.png", bbox_inches='tight', dpi=200)
     fig.clf()
    
     return    
-        
-##############################################################################
+ 
 
 def plot_defect(xp, yp, phi, phi_nematic, cid, xdp, ydp, directors, corrected_directors, \
                     dmax, sim, cell_list, possible_defect_pts_p, pt_colors, xcm, ycm, savepath):
@@ -454,7 +451,7 @@ def plot_defect(xp, yp, phi, phi_nematic, cid, xdp, ydp, directors, corrected_di
     ax3.tick_params(axis='both', which='major', labelsize=20)   
     
     ### save
-    
+
     plt.savefig(savepath, dpi=200, bbox_inches='tight', pad_inches=0.08)     
     fig.clf()
     

@@ -359,87 +359,10 @@ def calculate_order_param_matrix(xd, yd, nseg, x, y, phi_nematic, sim, cell_list
     ycm /= counter
     
     return qxx, qxy, qyy, xcm, ycm
-    
-##############################################################################
-        
-def compute_single_defect(xd, yd, x, y, phi, cid, sim, cell_list, \
-                          possible_defect_pts, pt_colors, \
-                          rn, nn, total_rec_num, dcut, fig_cnt):
-    """ compute the defect strength of a single point given with (xd, yd)"""
-    
-    ### allocate array to divide the full circle into orthants
-    
-    nseg = 10
-    DEFECT_BOOL = False
-
-    ### generate phi_nematic array by turning the orientations headless
-    
-    phi_nematic = np.zeros((len(x)))
-    for i in range(len(x)):
-        pi = phi[i]
-        if pi < 0:
-            pi += np.pi
-        phi_nematic[i] = pi
-
-    ### calculate and average the order parameter matrix per orthant
-   
-    qxx, qxy, qyy, xcm, ycm = calculate_order_param_matrix(xd, yd, nseg, x, y, phi_nematic, sim, cell_list)
-    
-    ### calculate the nematic directors per orthant
-    
-    directors, corrected_directors = calculate_nematic_directors(qxx, qxy, qyy, nseg)
-
-    ### determine the defect strength
-    
-    dmax = calculate_defect_strength(corrected_directors)
-    cc = 'colors'
-
-    ### check for -1/2 defects
-    
-    if (dmax > -dcut-0.5 and dmax < dcut-0.5):
-        DEFECT_BOOL = True
-        cc = 'r'
-        possible_defect_pts.append([xd, yd, dmax])
-        pt_colors.append(cc)
-        
-    ### check +1/2 defects
-    
-    elif (dmax > 0.5-dcut and dmax < dcut+0.5):
-        DEFECT_BOOL = True
-        cc = 'g'
-        possible_defect_pts.append([xd, yd, dmax])
-        pt_colors.append(cc)
-
-    ### if the point is not a defect
-    
-    else:
-        return
-    
-    ### search around friends of friends total_rec_num times max 
-    
-    if DEFECT_BOOL:
-        #print "Commencing recursion loop"
-        friend_list = recursion.find_friends(dmax, xd, yd, cell_list.rcut, rn, nn)
-        recursion.recursion(possible_defect_pts, friend_list, dmax, cc, rn, nn, x, y, \
-						phi_nematic, nseg, \
-						cid, sim, cell_list, \
-						possible_defect_pts, \
-						pt_colors, fig_cnt, total_rec_num, 0)
-    
-
-
-    ### plot the defects
-        
-#    if len(pt_colors) % 50 == 0:
-#        savepath = '/usr/users/iff_th2/duman/Desktop/figcontainer/fig_' + str(fig_cnt) + '.png'
-#        plot_defects.plot_defect(x, y, phi, phi_nematic, cid, xd, yd, directors, corrected_directors, \
-#                        dmax, sim, cell_list, possible_defect_pts, pt_colors, xcm, ycm, savepath)
-    
-    return  
 
 ##############################################################################
         
-def recompute_defects(xcmp, ycmp, beads, sim, rcut, dcut, step, spath):
+def compute_defects(xcmp, ycmp, beads, sim, rcut, dcut, step, spath):
     """ recompute the defect strengths of the ultimate defect points"""
     
     ### allocate array to divide the full circle into orthants
@@ -488,73 +411,51 @@ def recompute_defects(xcmp, ycmp, beads, sim, rcut, dcut, step, spath):
         dmax = calculate_defect_strength(corrected_directors)
         cc = 'colors'
         
+        ### determine the defect orientation
+        
+        dorient = calculate_defect_orientation(corrected_directors)
+        
         ### check for -1/2 defects
         
         if (dmax > -dcut-0.5 and dmax < dcut-0.5):
             cc = 'r'
-            defect_pts.append([xd, yd, dmax])
+            defect_pts.append([xd, yd, dmax, dorient])
             pt_colors.append(cc)
             
         ### check +1/2 defects
         
         elif (dmax > 0.5-dcut and dmax < dcut+0.5):
             cc = 'g'
-            defect_pts.append([xd, yd, dmax])
+            defect_pts.append([xd, yd, dmax, dorient])
             pt_colors.append(cc)
+        else:
+            print dmax
         
         ### plot the defects
         
-        if cc == 'r' or cc == 'g':
-            fig_cnt += 1
-            savepath = spath + 'fig_' + str(step) + '_'+ str(fig_cnt) + '.png'
-            plot_defects.plot_defect(x, y, phi, phi_nematic, beads.cid, xd, yd, \
-                                     directors, corrected_directors, \
-                                     dmax, sim, cell_list, defect_pts, pt_colors, \
-                                     xcm, ycm, savepath)
+#        if cc == 'r' or cc == 'g':
+#            fig_cnt += 1
+#            savepath = spath + 'fig_' + str(step) + '_'+ str(fig_cnt) + '.png'
+#            plot_defects.plot_defect(x, y, phi, phi_nematic, beads.cid, xd, yd, \
+#                                     directors, corrected_directors, \
+#                                     dmax, sim, cell_list, defect_pts, pt_colors, \
+#                                     xcm, ycm, savepath)
 
     return defect_pts
             
-##############################################################################
-        
-def find_defects(beads, sim, step, rcut, npoints, rn, dn, nn, total_rec_num, dcut):
-    """ find the defect points"""
-    
-    ### generate a cell based linked list to browse beads based on position
-    
-    cell_list = linked_list(beads.x[step, 0, :], beads.x[step, 1, :], sim, rcut)
-    
-    ### calculate the bead orientations
-    
-    phi = misc_tools.compute_orientation(beads.x[step, 0, :], beads.x[step, 1, :], \
-                                             sim.lx, sim.ly, sim.nbpf)
-    
-    ### choose random trial points and determine their defect strength
-    ### do mesh refinement for points around existing defects
-    
-    possible_defect_pts = []
-    pt_colors = []
-    points = np.random.uniform(0., sim.lx, (npoints, 2))
-    fig_cnt = 0
-    for point in points:
-        #print 'Search for a new point commences with the following coordinates: ', point[0], ' ', point[1]
-        fig_cnt += 1
-        compute_single_defect(point[0], point[1], beads.x[step, 0, :], beads.x[step, 1, :], \
-                                  phi, beads.cid, sim, cell_list, possible_defect_pts, \
-                                      pt_colors, rn, nn, total_rec_num, dcut, fig_cnt)
-        
-    return possible_defect_pts
         
 ##############################################################################
 
 def save_data(points, sfl):
-    """ save the data on possible defect points"""
+    """ save the data on defect points"""
 
     #savefolder = '/usr/users/iff_th2/duman/Defects/Output/'
     
     fl = open(sfl, 'w')
     npoints = len(points)
     for j in range(npoints):
-        fl.write(str(points[j][0]) + '\t' + str(points[j][1]) + '\t' + str(points[j][2]) + '\n')
+        fl.write(str(points[j][0]) + '\t' + str(points[j][1]) + '\t'
+                 + str(points[j][2]) + '\t' + str(points[j][3]) + '\n')
     fl.close()
 
     return
@@ -567,7 +468,20 @@ def load_data(loadfile):
     data = np.transpose(np.loadtxt(loadfile, dtype=np.float64))
 
     return data
-                   
+ 
+##############################################################################
+
+def load_h5_data(loadfile):
+    """ load the data on possible defect points"""
+    
+    fl = h5py.File(loadfile, 'r')
+    x = np.array(fl['/xpos'], dtype=np.float32)
+    y = np.array(fl['/ypos'], dtype=np.float32)
+    d = np.array(fl['/dstr'], dtype=np.float32)
+    data = [x, y, d]
+    
+    return data
+                  
 ##############################################################################
 
 def main():
@@ -579,7 +493,7 @@ def main():
                         const='/usr/users/iff_th2/duman/Defects/Output/', \
                         help="Folder containing data")
     parser.add_argument("-sfl", "--savefolder", nargs="?", \
-                        const='/usr/users/iff_th2/duman/Defects/Output/', \
+                        const='/usr/users/iff_th2/duman/Defects/Output/cpp/', \
                         help="Folder to save the data inside")
     parser.add_argument("-figfl", "--figfolder", nargs="?", \
                         const='/usr/users/iff_th2/duman/Defects/Output/Figures/', \
@@ -592,45 +506,29 @@ def main():
     ### read the data and general information from the folder
     
     beads, sim = read_data(args.folder)
-
-    ### find defects
- 
-    rcut = 15.              # defect search radius
-    npoints = 20000         # number of points that is going to be checked
-    rn = 0.65*rcut          # inner radius of the shell where neighbor search is going to performed
-    dn = 5.                 # search radius/depth of the shell (THIS IS NOT USED ATM!)
-    nn = 5                  # number of neighbor points to pop up
+    
+    rcut = 15.              # size of the interrogation circle
     dcut = 0.1              # defect strength cut
-    total_rec_num = 3       # total number of recursions to find friends of friends and so on    
-    dcrit = 10.             # cluster threshold criteria
+    dcrit = 8.              # clustering distance threshold criteria
+    ncrit = 15              # clustering size threshold criteria
 
     for step in range(args.inittime, args.fintime):
         
         print 'step / last_step: ', step, args.fintime
-    
-        ### find the possible defect points
-        
-        #possible_defect_pts = find_defects(beads, sim, step, rcut, npoints, \
-        #                                   rn, dn, nn, total_rec_num, dcut)
-        
-        ### save the possible defect points
-        
-        #sfilepath = args.savefolder + 'possible_defect_pts_' + str(step) + '.txt'
-        #save_data(possible_defect_pts, sfilepath)
         
         ### load the possible defect points
         
-        sfilepath = args.savefolder + 'possible_defect_pts_' + str(step) + '.txt'
-        possible_defect_pts = load_data(sfilepath)
+        sfilepath = args.folder + 'possible_defect_pts_cpp_' + str(step) + '.h5'
+        possible_defect_pts = load_h5_data(sfilepath)
         
         ### cluster the possible defect points and plot the cluster
         
-        xcm, ycm = examine_clusters.cluster_analysis(possible_defect_pts, dcrit, sim, step, \
+        xcm, ycm = examine_clusters.cluster_analysis(possible_defect_pts, dcrit, ncrit, sim, step, \
                                                      beads.x[step, 0, :], beads.x[step, 1, :], beads.cid)
     
-        ### for each of the defect points found by clustering recalculate defect strength and plot each point
+        ### for each of the defect points found by clustering calculate the defect strength and plot each point
     
-        defect_pts = recompute_defects(xcm, ycm, beads, sim, rcut, dcut, step, args.figfolder)  
+        defect_pts = compute_defects(xcm, ycm, beads, sim, rcut, dcut, step, args.figfolder)  
     
         ### save the ultimate defect points
         
